@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RVC</title>
+</head>
+<body>
+  <h1>Training model of voice:</h1>
+  <div id="files_uploaded">
+    Please upload file
+  </div>
+  <br>
+  <button id="retry" style="display: none;">Retry</button>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <div id="upload" style="display: inline;">
+      <input type="file" name="fileInput" id="fileInput" accept="audio/mpeg">
+      <button type="submit">Upload</button>
+    </div>
+    <button type="button" id="train-btn" onclick="train()" style="display: none;">Prepare train</button>
+    <div id="status"></div>
+  </form>
+  <div id="uploaded_files">
+  </div>
+  
+
+  <h1>Cloned voices:</h1>
+  <div id="files">
+    getting files...
+  </div>
+
+  <script>
+    const filesEl = document.querySelector('#files');
+    const origin = 'http://' + window.location.hostname + ':3000';
+
+    function train() {
+      document.querySelector('#upload').style.setProperty('display', 'none');
+      document.querySelector('#status').innerHTML = 'Dont close this window...<br><br>';
+      // document.querySelector('#status').innerHTML += '<img src="/imgs/tutorial.png" width="100%" />'
+      document.querySelector('#train-btn').style.setProperty('display', 'none');
+
+      fetch(`${origin}/train/${window.location.hostname}`)
+        .then(async() => {
+          document.querySelector('#status').innerHTML = '';
+          document.querySelector('#retry').style.display = 'block';
+
+          document.querySelector('#retry').addEventListener('click', () => {
+            document.querySelector('#upload').style.setProperty('display', 'inline-block');
+            document.querySelector('#retry').style.display = 'none';
+
+          })
+        })
+        .catch((err) => {
+          document.querySelector('#status').innerHTML = 'Error: ' + err;
+        })
+    }
+
+    document.addEventListener('DOMContentLoaded',  () => {
+      listenWeightsFolder();
+
+    });
+
+    // listen weights folder change
+    function listenWeightsFolder() {
+      const eventSource = new EventSource('/weightschange');
+      console.log('Connection opened');
+      eventSource.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        filesEl.innerHTML = '';
+
+        data.files.forEach(file => {
+          if(file !== '.gitignore') addListElement(file)
+        })
+      })
+
+      const eventSourceModels = new EventSource('/onupload');
+      eventSourceModels.addEventListener('message', (event) => {
+         const data = JSON.parse(event.data);
+         const filesElPlace = document.querySelector('#files_uploaded');
+        filesElPlace.innerHTML = '';
+
+        data.files.forEach(file => {
+          if(file !== '.gitignore') {
+            const fileEl = document.createElement('li');
+            const downloadLinkEl = document.createElement('a');
+
+            downloadLinkEl.href = `/download/${encodeURIComponent(file?.name ?? file)}`;
+            downloadLinkEl.innerText = `${file?.name ?? file}`;
+
+            fileEl.appendChild(downloadLinkEl);
+            filesElPlace.appendChild(fileEl)
+          }
+        })
+      })
+    } 
+    
+    function addListElement(file) {
+
+      const fileEl = document.createElement('li');
+      const downloadLinkEl = document.createElement('a');
+
+      downloadLinkEl.href = `/download/${encodeURIComponent(file?.name ?? file)}`;
+      downloadLinkEl.innerText = `${file?.name ?? file}`;
+
+      fileEl.appendChild(downloadLinkEl);
+      filesEl.appendChild(fileEl)
+    }
+    
+
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch(`${origin}/files`)
+        .then((response) => response.json())
+        .then((data) => {
+          filesEl.innerHTML = '';
+          data.filter((file) => file.name !== '.gitignore' ).forEach((file) => addListElement(file) );
+    });
+  })
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Prevent form submission
+  
+    var fileInput = document.getElementById('fileInput');
+    var file = fileInput.files[0];
+  
+    if (file) {
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('filename', file.name);
+      // clean folder
+      await fetch(`${origin}/cleanFolder`);
+
+        fetch(`${origin}/upload`, {
+            method: 'POST',
+            body: formData
+          })
+          .then(function(response) {
+            if (response.ok) {
+              // alert('File uploaded successfully!');
+              document.querySelector('#train-btn').style.setProperty('display', 'inline');
+            } else {
+              alert('File upload failed.');
+            }
+          })
+          .catch(function(error) {
+            console.error('Error:', error);
+          });
+      }
+
+  });
+  
+  </script>
+</body>
+</html>
