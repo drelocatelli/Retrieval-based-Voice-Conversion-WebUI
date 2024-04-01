@@ -211,10 +211,10 @@ async function train(host) {
   const y = (value) => Math.round((value / 1080) * screenSize.height);
 
   // Perform mouse click
-  await page.mouse.click(x(783.234375), y(112), { button: 'left' });
+  await page.mouse.click(x(783.234375), y(160), { button: 'left' });
 
   // change name of weight
-  await page.mouse.click(x(222.5), y(271), { button: 'left' });
+  await page.mouse.click(x(222.5), y(319), { button: 'left' });
   await page.keyboard.down('Control');
   await page.keyboard.press('A');
   await page.keyboard.up('Control');
@@ -224,16 +224,37 @@ async function train(host) {
   await page.mouse.click(x(1196.78125), y(280), { button: 'left' });
 
   // change folder of models
-  await page.mouse.click(x(222.5), y(454), { button: 'left' });
+  await page.mouse.click(x(222.5), y(502), { button: 'left' });
   await page.keyboard.down('Control');
   await page.keyboard.press('A');
   await page.keyboard.up('Control');
   await page.keyboard.type('D:\\RVC-BETA0717\\models');
+  
 
-  // change epoch to 69
-  await page.mouse.click(x(469.671875 + 20), y(857), { button: 'left' });
-  await page.keyboard.type('69');
+  // process data
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+
+  await paga.waitForSelector(5000);
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.down('Control');
+  await page.keyboard.press('A');
+
 }
+
+app.get('/process_data', (req, res) => {
+  res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+  });
+
+  // get process data result
+  res.write(`Processed data`);
+});
 
 
 app.listen(3000, function() {
